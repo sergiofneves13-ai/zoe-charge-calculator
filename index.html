@@ -1,1 +1,47 @@
-<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Zoe Charge Calculator</title></head><body><p>Preparação da aplicação...</p></body></html>
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="description" content="Simulador de carregamento para Renault Zoe ZE50." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Zoe Charge Calculator</title>
+  <style>
+    :root{--bg:#f8fafc;--panel:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#0f766e}
+    *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:820px;margin:0 auto;padding:18px 14px 40px}.hero{background:linear-gradient(135deg,#0f172a,#134e4a);color:#fff;border-radius:20px;padding:20px;margin-bottom:16px}.hero h1{margin:0 0 6px;font-size:1.5rem}.hero p{margin:0;color:#cbd5e1}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 6px 18px rgba(15,23,42,.04)}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}label{display:block;font-size:.85rem;font-weight:700;margin-bottom:6px;color:#334155}
+    input,button{font:inherit}input[type=number],input[type=time]{width:100%;border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;color:var(--text);min-height:46px}input[type=range]{width:100%}
+    .rangeRow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.bigPct{font-size:1.2rem;font-weight:800;min-width:56px;text-align:right}.result{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}.result strong{font-size:2.2rem}.sub{color:var(--muted);font-size:.92rem}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#ecfeff;color:#155e75;font-weight:700;font-size:.82rem}
+    table{width:100%;border-collapse:collapse;min-width:620px}th,td{padding:11px 10px;border-top:1px solid var(--border);text-align:right;font-size:.9rem}th:first-child,td:first-child,th:last-child,td:last-child{text-align:left}thead th{border-top:0;background:#f8fafc}.tableWrap{overflow:auto;border:1px solid var(--border);border-radius:14px}.recommended{background:#ecfdf5}.small{font-size:.8rem;color:var(--muted)}.note{padding:12px;border-radius:12px;background:#f8fafc;color:#475569}.footer{font-size:.78rem;color:var(--muted);text-align:center;margin-top:16px}.install{display:none;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:12px 16px;font-weight:800}.install.show{display:inline-block}
+    @media(max-width:640px){.grid,.grid4{grid-template-columns:1fr 1fr}.hero h1{font-size:1.3rem}.result strong{font-size:1.8rem}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+<section class="hero"><h1>Zoe Charge Calculator</h1><p>Simulador de carregamento para Renault Zoe ZE50 · bateria útil 52 kWh</p><div style="margin-top:14px"><button id="installBtn" class="install">Instalar aplicação</button></div></section>
+<section class="card"><div class="grid">
+<div><label for="startSoc">Bateria ao chegar a casa</label><div class="rangeRow"><input id="startSoc" type="range" min="5" max="95" step="1" value="55"><output id="startSocOut" class="bigPct">55%</output></div></div>
+<div><label for="targetSoc">Objetivo de carga</label><div class="rangeRow"><input id="targetSoc" type="range" min="20" max="100" step="1" value="80"><output id="targetSocOut" class="bigPct">80%</output></div></div>
+</div></section>
+<section class="card"><div class="grid4">
+<div><label for="startTime">Início</label><input id="startTime" type="time" value="00:00"></div>
+<div><label for="endTime">Fim</label><input id="endTime" type="time" value="07:00"></div>
+<div><label for="voltage">Tensão (V)</label><input id="voltage" type="number" min="200" max="250" value="223"></div>
+<div><label for="efficiency">Eficiência (%)</label><input id="efficiency" type="number" min="70" max="98" value="85"></div>
+</div></section>
+<section class="card"><div class="result"><div><div class="sub">Configuração recomendada</div><strong id="bestAmp">10 A</strong><div id="bestPower" class="sub">≈ 2,23 kW</div></div><span id="statusPill" class="pill">Objetivo atingível</span></div><p id="bestText" style="margin:14px 0 0">Estimativa pronta.</p></section>
+<section class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:10px"><div><strong>Comparação das potências</strong><div id="windowInfo" class="small">Janela disponível: 7h00</div></div><div class="small">Opções: 6 / 8 / 10 / 13 / 16 A</div></div><div class="tableWrap"><table><thead><tr><th>Corrente</th><th>Potência</th><th>Carga final</th><th>Tempo p/ objetivo</th><th>Resultado</th></tr></thead><tbody id="tbody"></tbody></table></div></section>
+<section class="card"><div class="note"><strong>Nota:</strong> trata-se de uma estimativa. Temperatura, perdas, balanceamento e gestão eletrónica da bateria podem alterar ligeiramente o resultado real.</div></section>
+<div class="footer">Feito para o Renault Zoe ZE50 · funcionamento offline após a primeira abertura</div>
+</main>
+<script>
+(()=>{const battery=52,amps=[6,8,10,13,16],$=id=>document.getElementById(id),clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),mins=t=>{const[h,m]=t.split(':').map(Number);return h*60+m},hours=(a,b)=>{let x=mins(a),y=mins(b);if(y<=x)y+=1440;return(y-x)/60},fmtH=h=>{if(!isFinite(h))return'—';const m=Math.round(h*60);return `${Math.floor(m/60)}h${String(m%60).padStart(2,'0')}`},pct=n=>`${clamp(n,0,100).toFixed(0)}%`,kw=n=>`${n.toFixed(2).replace('.',',')} kW`;
+function recalc(){const s=clamp(Number($('startSoc').value)||0,0,100),t=clamp(Number($('targetSoc').value)||80,0,100),v=clamp(Number($('voltage').value)||223,200,250),eff=clamp((Number($('efficiency').value)||85)/100,.7,.98),h=hours($('startTime').value,$('endTime').value);$('startSocOut').textContent=pct(s);$('targetSocOut').textContent=pct(t);$('windowInfo').textContent=`Janela disponível: ${fmtH(h)}`;const need=Math.max(0,(t-s)/100*battery);let best=null;const rows=[];for(const a of amps){const p=v*a/1000,delivered=p*h*eff,end=Math.min(100,s+delivered/battery*100),time=need===0?0:need/(p*eff),reaches=end>=t-.01;rows.push({a,p,end,time,reaches});if(reaches&&!best)best={a,p,end,time}}$('tbody').innerHTML=rows.map(r=>`<tr class="${best&&r.a===best.a?'recommended':''}"><td><strong>${r.a} A</strong></td><td>${kw(r.p)}</td><td><strong>${pct(r.end)}</strong></td><td>${fmtH(r.time)}</td><td>${s>=t?'Objetivo já atingido':(best&&r.a===best.a?'Recomendado':r.reaches?'Chega ao objetivo':'Fica abaixo')}</td></tr>`).join('');if(s>=t){$('bestAmp').textContent='Sem carga';$('bestPower').textContent='';$('bestText').textContent=`A bateria já está em ${pct(s)}, acima do objetivo de ${pct(t)}.`;$('statusPill').textContent='Já atingido';return}if(best){$('bestAmp').textContent=`${best.a} A`;$('bestPower').textContent=`≈ ${kw(best.p)}`;$('bestText').textContent=`É a menor corrente disponível que deverá atingir ${pct(t)} até às ${$('endTime').value}. Estimativa final: ${pct(best.end)}.`;$('statusPill').textContent='Objetivo atingível'}else{const r=rows.at(-1);$('bestAmp').textContent='16 A';$('bestPower').textContent=`≈ ${kw(r.p)}`;$('bestText').textContent=`Mesmo a 16 A, a estimativa às ${$('endTime').value} é ${pct(r.end)}. Será necessário começar mais cedo ou aceitar uma carga inferior.`;$('statusPill').textContent='Tempo insuficiente'}}
+document.querySelectorAll('input').forEach(el=>el.addEventListener('input',recalc));recalc();if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}let deferredPrompt=null;const btn=$('installBtn');window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;btn.classList.add('show')});btn.addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;btn.classList.remove('show')})})();
+</script>
+</body></html>

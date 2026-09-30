@@ -23,7 +23,7 @@
 </head>
 <body>
 <main class="wrap">
-<section class="hero"><h1>Zoe Charge Calculator</h1><p>Simulador de carregamento para Renault Zoe ZE50 · bateria útil 52 kWh</p><div style="margin-top:14px"><button id="installBtn" class="install">Instalar aplicação</button></div></section>
+<section class="hero"><h1>Zoe Charge Calculator</h1><p>Perfil calibrado com o teu Zoe · referência real 55% → 84% a 10 A em 6h02</p><div style="margin-top:14px"><button id="installBtn" class="install">Instalar aplicação</button></div></section>
 <section class="card"><div class="grid">
 <div><label for="startSoc">Bateria ao chegar a casa</label><div class="rangeRow"><input id="startSoc" type="range" min="5" max="95" step="1" value="55"><output id="startSocOut" class="bigPct">55%</output></div></div>
 <div><label for="targetSoc">Objetivo de carga</label><div class="rangeRow"><input id="targetSoc" type="range" min="20" max="100" step="1" value="80"><output id="targetSocOut" class="bigPct">80%</output></div></div>
@@ -32,16 +32,114 @@
 <div><label for="startTime">Início</label><input id="startTime" type="time" value="00:00"></div>
 <div><label for="endTime">Fim</label><input id="endTime" type="time" value="07:00"></div>
 <div><label for="voltage">Tensão (V)</label><input id="voltage" type="number" min="200" max="250" value="223"></div>
-<div><label for="efficiency">Eficiência (%)</label><input id="efficiency" type="number" min="70" max="98" value="85"></div>
+<div><label for="correction">Correção fina (%)</label><input id="correction" type="number" min="90" max="110" value="100"></div>
 </div></section>
 <section class="card"><div class="result"><div><div class="sub">Configuração recomendada</div><strong id="bestAmp">10 A</strong><div id="bestPower" class="sub">≈ 2,23 kW</div></div><span id="statusPill" class="pill">Objetivo atingível</span></div><p id="bestText" style="margin:14px 0 0">Estimativa pronta.</p></section>
 <section class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:10px"><div><strong>Comparação das potências</strong><div id="windowInfo" class="small">Janela disponível: 7h00</div></div><div class="small">Opções: 6 / 8 / 10 / 13 / 16 A</div></div><div class="tableWrap"><table><thead><tr><th>Corrente</th><th>Potência</th><th>Carga final</th><th>Tempo p/ objetivo</th><th>Resultado</th></tr></thead><tbody id="tbody"></tbody></table></div></section>
-<section class="card"><div class="note"><strong>Nota:</strong> trata-se de uma estimativa. Temperatura, perdas, balanceamento e gestão eletrónica da bateria podem alterar ligeiramente o resultado real.</div></section>
+<section class="card"><div class="note"><strong>Calibração:</strong> o cálculo usa como referência a tua sessão real de 55% para 84%, a 10 A, entre 00:00 e 06:02. A opção “Correção fina” permite afinar o perfil após novos carregamentos. <br><br><strong>Nota:</strong> a percentagem mostrada pelo carro é arredondada e temperatura, tensão e gestão da bateria podem alterar ligeiramente o resultado.</div></section>
 <div class="footer">Feito para o Renault Zoe ZE50 · funcionamento offline após a primeira abertura</div>
 </main>
 <script>
-(()=>{const battery=52,amps=[6,8,10,13,16],$=id=>document.getElementById(id),clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),mins=t=>{const[h,m]=t.split(':').map(Number);return h*60+m},hours=(a,b)=>{let x=mins(a),y=mins(b);if(y<=x)y+=1440;return(y-x)/60},fmtH=h=>{if(!isFinite(h))return'—';const m=Math.round(h*60);return `${Math.floor(m/60)}h${String(m%60).padStart(2,'0')}`},pct=n=>`${clamp(n,0,100).toFixed(0)}%`,kw=n=>`${n.toFixed(2).replace('.',',')} kW`;
-function recalc(){const s=clamp(Number($('startSoc').value)||0,0,100),t=clamp(Number($('targetSoc').value)||80,0,100),v=clamp(Number($('voltage').value)||223,200,250),eff=clamp((Number($('efficiency').value)||85)/100,.7,.98),h=hours($('startTime').value,$('endTime').value);$('startSocOut').textContent=pct(s);$('targetSocOut').textContent=pct(t);$('windowInfo').textContent=`Janela disponível: ${fmtH(h)}`;const need=Math.max(0,(t-s)/100*battery);let best=null;const rows=[];for(const a of amps){const p=v*a/1000,delivered=p*h*eff,end=Math.min(100,s+delivered/battery*100),time=need===0?0:need/(p*eff),reaches=end>=t-.01;rows.push({a,p,end,time,reaches});if(reaches&&!best)best={a,p,end,time}}$('tbody').innerHTML=rows.map(r=>`<tr class="${best&&r.a===best.a?'recommended':''}"><td><strong>${r.a} A</strong></td><td>${kw(r.p)}</td><td><strong>${pct(r.end)}</strong></td><td>${fmtH(r.time)}</td><td>${s>=t?'Objetivo já atingido':(best&&r.a===best.a?'Recomendado':r.reaches?'Chega ao objetivo':'Fica abaixo')}</td></tr>`).join('');if(s>=t){$('bestAmp').textContent='Sem carga';$('bestPower').textContent='';$('bestText').textContent=`A bateria já está em ${pct(s)}, acima do objetivo de ${pct(t)}.`;$('statusPill').textContent='Já atingido';return}if(best){$('bestAmp').textContent=`${best.a} A`;$('bestPower').textContent=`≈ ${kw(best.p)}`;$('bestText').textContent=`É a menor corrente disponível que deverá atingir ${pct(t)} até às ${$('endTime').value}. Estimativa final: ${pct(best.end)}.`;$('statusPill').textContent='Objetivo atingível'}else{const r=rows.at(-1);$('bestAmp').textContent='16 A';$('bestPower').textContent=`≈ ${kw(r.p)}`;$('bestText').textContent=`Mesmo a 16 A, a estimativa às ${$('endTime').value} é ${pct(r.end)}. Será necessário começar mais cedo ou aceitar uma carga inferior.`;$('statusPill').textContent='Tempo insuficiente'}}
-document.querySelectorAll('input').forEach(el=>el.addEventListener('input',recalc));recalc();if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}let deferredPrompt=null;const btn=$('installBtn');window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;btn.classList.add('show')});btn.addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;btn.classList.remove('show')})})();
+(()=>{
+  const amps=[6,8,10,13,16];
+  const calibration={
+    startSoc:55,
+    endSoc:84,
+    amp:10,
+    hours:6+(2/60),
+    voltage:223
+  };
+  const baseRate=(calibration.endSoc-calibration.startSoc)/calibration.hours; // pontos %/h a 10 A e 223 V
+  const $=id=>document.getElementById(id);
+  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+  const mins=t=>{const[h,m]=t.split(':').map(Number);return h*60+m};
+  const hours=(a,b)=>{let x=mins(a),y=mins(b);if(y<=x)y+=1440;return(y-x)/60};
+  const fmtH=h=>{if(!isFinite(h)||h<0)return'—';const m=Math.round(h*60);return `${Math.floor(m/60)}h${String(m%60).padStart(2,'0')}`};
+  const pct=n=>`${clamp(n,0,100).toFixed(0)}%`;
+  const kw=n=>`${n.toFixed(2).replace('.',',')} kW`;
+  const addHours=(time,h)=>{
+    let total=mins(time)+Math.round(h*60);
+    total%=1440;
+    const hh=Math.floor(total/60),mm=total%60;
+    return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+  };
+
+  function recalc(){
+    const s=clamp(Number($('startSoc').value)||0,0,100);
+    const t=clamp(Number($('targetSoc').value)||80,0,100);
+    const v=clamp(Number($('voltage').value)||223,200,250);
+    const correction=clamp((Number($('correction').value)||100)/100,.90,1.10);
+    const h=hours($('startTime').value,$('endTime').value);
+
+    $('startSocOut').textContent=pct(s);
+    $('targetSocOut').textContent=pct(t);
+    $('windowInfo').textContent=`Janela disponível: ${fmtH(h)} · perfil calibrado`;
+
+    const rows=[];
+    let best=null;
+    for(const a of amps){
+      const power=v*a/1000;
+      const rate=baseRate*(a/calibration.amp)*(v/calibration.voltage)*correction;
+      const end=Math.min(100,s+rate*h);
+      const need=Math.max(0,t-s);
+      const time=need===0?0:need/rate;
+      const reaches=end>=t-.01;
+      rows.push({a,power,rate,end,time,reaches});
+      if(reaches&&!best)best={a,power,rate,end,time};
+    }
+
+    $('tbody').innerHTML=rows.map(r=>`<tr class="${best&&r.a===best.a?'recommended':''}">
+      <td><strong>${r.a} A</strong></td>
+      <td>${kw(r.power)}</td>
+      <td><strong>${pct(r.end)}</strong></td>
+      <td>${fmtH(r.time)}</td>
+      <td>${s>=t?'Objetivo já atingido':(best&&r.a===best.a?'Recomendado':r.reaches?'Chega ao objetivo':'Fica abaixo')}</td>
+    </tr>`).join('');
+
+    if(s>=t){
+      $('bestAmp').textContent='Sem carga';
+      $('bestPower').textContent='';
+      $('bestText').textContent=`A bateria já está em ${pct(s)}, acima do objetivo de ${pct(t)}.`;
+      $('statusPill').textContent='Já atingido';
+      return;
+    }
+
+    if(best){
+      const targetTime=addHours($('startTime').value,best.time);
+      $('bestAmp').textContent=`${best.a} A`;
+      $('bestPower').textContent=`≈ ${kw(best.power)}`;
+      $('bestText').textContent=`Com o perfil calibrado, a ${best.a} A deverás atingir ${pct(t)} aproximadamente às ${targetTime}. Se mantiveres a carga até às ${$('endTime').value}, a estimativa é ${pct(best.end)}.`;
+      $('statusPill').textContent='Perfil calibrado';
+    }else{
+      const r=rows.at(-1);
+      $('bestAmp').textContent='16 A';
+      $('bestPower').textContent=`≈ ${kw(r.power)}`;
+      $('bestText').textContent=`Mesmo a 16 A, a estimativa às ${$('endTime').value} é ${pct(r.end)}. Será necessário começar mais cedo ou aceitar uma carga inferior.`;
+      $('statusPill').textContent='Tempo insuficiente';
+    }
+  }
+
+  document.querySelectorAll('input').forEach(el=>el.addEventListener('input',recalc));
+  recalc();
+
+  if('serviceWorker'in navigator){
+    window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  }
+
+  let deferredPrompt=null;
+  const btn=$('installBtn');
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();
+    deferredPrompt=e;
+    btn.classList.add('show');
+  });
+  btn.addEventListener('click',async()=>{
+    if(!deferredPrompt)return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt=null;
+    btn.classList.remove('show');
+  });
+})();
 </script>
 </body></html>

@@ -23,7 +23,7 @@
 </head>
 <body>
 <main class="wrap">
-<section class="hero"><h1>Zoe Charge Calculator</h1><p>Perfil calibrado com o teu Zoe · referência real 55% → 84% a 10 A em 6h02</p><div style="margin-top:14px"><button id="installBtn" class="install">Instalar aplicação</button></div></section>
+<section class="hero"><h1>Zoe Charge Calculator</h1><p>Perfil calibrado com 2 sessões reais · 10 A e 13 A</p><div style="margin-top:14px"><button id="installBtn" class="install">Instalar aplicação</button></div></section>
 <section class="card"><div class="grid">
 <div><label for="startSoc">Bateria ao chegar a casa</label><div class="rangeRow"><input id="startSoc" type="range" min="5" max="95" step="1" value="55"><output id="startSocOut" class="bigPct">55%</output></div></div>
 <div><label for="targetSoc">Objetivo de carga</label><div class="rangeRow"><input id="targetSoc" type="range" min="20" max="100" step="1" value="80"><output id="targetSocOut" class="bigPct">80%</output></div></div>
@@ -36,20 +36,24 @@
 </div></section>
 <section class="card"><div class="result"><div><div class="sub">Configuração recomendada</div><strong id="bestAmp">10 A</strong><div id="bestPower" class="sub">≈ 2,23 kW</div></div><span id="statusPill" class="pill">Objetivo atingível</span></div><p id="bestText" style="margin:14px 0 0">Estimativa pronta.</p></section>
 <section class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:10px"><div><strong>Comparação das potências</strong><div id="windowInfo" class="small">Janela disponível: 7h00</div></div><div class="small">Opções: 6 / 8 / 10 / 13 / 16 A</div></div><div class="tableWrap"><table><thead><tr><th>Corrente</th><th>Potência</th><th>Carga final</th><th>Tempo p/ objetivo</th><th>Resultado</th></tr></thead><tbody id="tbody"></tbody></table></div></section>
-<section class="card"><div class="note"><strong>Calibração:</strong> o cálculo usa como referência a tua sessão real de 55% para 84%, a 10 A, entre 00:00 e 06:02. A opção “Correção fina” permite afinar o perfil após novos carregamentos. <br><br><strong>Nota:</strong> a percentagem mostrada pelo carro é arredondada e temperatura, tensão e gestão da bateria podem alterar ligeiramente o resultado.</div></section>
+<section class="card"><div class="note"><strong>Calibração real:</strong><br>
+  • 10 A: 55% → 84% em 6h02<br>
+  • 13 A: 40% → 75% em 6h24<br><br>
+  A app usa diretamente estes dois pontos. Para 6, 8 e 16 A, usa uma curva estimada até termos medições reais nessas correntes. <br><br><strong>Nota:</strong> a percentagem indicada pelo carro é arredondada e a temperatura, tensão e gestão da bateria podem introduzir pequenas diferenças.</div></section>
 <div class="footer">Feito para o Renault Zoe ZE50 · funcionamento offline após a primeira abertura</div>
 </main>
 <script>
 (()=>{
   const amps=[6,8,10,13,16];
-  const calibration={
-    startSoc:55,
-    endSoc:84,
-    amp:10,
-    hours:6+(2/60),
-    voltage:223
-  };
-  const baseRate=(calibration.endSoc-calibration.startSoc)/calibration.hours; // pontos %/h a 10 A e 223 V
+  const real10={amp:10,start:55,end:84,hours:6+(2/60)};
+  const real13={amp:13,start:40,end:75,hours:6+(24/60)};
+  const rate10=(real10.end-real10.start)/real10.hours;
+  const rate13=(real13.end-real13.start)/real13.hours;
+
+  // Curva empírica que passa exatamente pelos dois pontos reais.
+  const exponent=Math.log(rate13/rate10)/Math.log(real13.amp/real10.amp);
+  const k=rate10/Math.pow(real10.amp,exponent);
+
   const $=id=>document.getElementById(id);
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const mins=t=>{const[h,m]=t.split(':').map(Number);return h*60+m};
@@ -63,6 +67,12 @@
     const hh=Math.floor(total/60),mm=total%60;
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
   };
+  const rateForAmp=(a,correction)=>{
+    if(a===10) return rate10*correction;
+    if(a===13) return rate13*correction;
+    return k*Math.pow(a,exponent)*correction;
+  };
+  const isRealAmp=a=>a===10||a===13;
 
   function recalc(){
     const s=clamp(Number($('startSoc').value)||0,0,100);
@@ -73,23 +83,25 @@
 
     $('startSocOut').textContent=pct(s);
     $('targetSocOut').textContent=pct(t);
-    $('windowInfo').textContent=`Janela disponível: ${fmtH(h)} · perfil calibrado`;
+    $('windowInfo').textContent=`Janela disponível: ${fmtH(h)} · 10 A e 13 A calibrados`;
 
     const rows=[];
     let best=null;
+
     for(const a of amps){
       const power=v*a/1000;
-      const rate=baseRate*(a/calibration.amp)*(v/calibration.voltage)*correction;
+      const rate=rateForAmp(a,correction);
       const end=Math.min(100,s+rate*h);
       const need=Math.max(0,t-s);
       const time=need===0?0:need/rate;
       const reaches=end>=t-.01;
-      rows.push({a,power,rate,end,time,reaches});
-      if(reaches&&!best)best={a,power,rate,end,time};
+      const source=isRealAmp(a)?'real':'estimado';
+      rows.push({a,power,rate,end,time,reaches,source});
+      if(reaches&&!best)best={a,power,rate,end,time,source};
     }
 
     $('tbody').innerHTML=rows.map(r=>`<tr class="${best&&r.a===best.a?'recommended':''}">
-      <td><strong>${r.a} A</strong></td>
+      <td><strong>${r.a} A</strong><div class="small">${r.source==='real'?'calibrado':'estimado'}</div></td>
       <td>${kw(r.power)}</td>
       <td><strong>${pct(r.end)}</strong></td>
       <td>${fmtH(r.time)}</td>
@@ -108,8 +120,9 @@
       const targetTime=addHours($('startTime').value,best.time);
       $('bestAmp').textContent=`${best.a} A`;
       $('bestPower').textContent=`≈ ${kw(best.power)}`;
-      $('bestText').textContent=`Com o perfil calibrado, a ${best.a} A deverás atingir ${pct(t)} aproximadamente às ${targetTime}. Se mantiveres a carga até às ${$('endTime').value}, a estimativa é ${pct(best.end)}.`;
-      $('statusPill').textContent='Perfil calibrado';
+      const qual=best.source==='real'?'com calibração real':'com estimativa baseada nas duas calibrações reais';
+      $('bestText').textContent=`A ${best.a} A, ${qual}, deverás atingir ${pct(t)} aproximadamente às ${targetTime}. Se mantiveres a carga até às ${$('endTime').value}, a estimativa é ${pct(best.end)}.`;
+      $('statusPill').textContent=best.source==='real'?'Calibração real':'Estimativa';
     }else{
       const r=rows.at(-1);
       $('bestAmp').textContent='16 A';

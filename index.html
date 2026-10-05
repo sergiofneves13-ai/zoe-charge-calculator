@@ -35,16 +35,16 @@
 <div><label for="correction">Correção fina (%)</label><input id="correction" type="number" min="90" max="110" value="100"></div>
 </div></section>
 <section class="card"><div class="result"><div><div class="sub">Configuração recomendada</div><strong id="bestAmp">10 A</strong><div id="bestPower" class="sub">≈ 2,23 kW</div></div><span id="statusPill" class="pill">Objetivo atingível</span></div><p id="bestText" style="margin:14px 0 0">Estimativa pronta.</p></section>
-<section class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:10px"><div><strong>Comparação das potências</strong><div id="windowInfo" class="small">Janela disponível: 7h00</div></div><div class="small">Opções: 6 / 8 / 10 / 13 / 16 A</div></div><div class="tableWrap"><table><thead><tr><th>Corrente</th><th>Potência</th><th>Carga final</th><th>Tempo p/ objetivo</th><th>Resultado</th></tr></thead><tbody id="tbody"></tbody></table></div></section>
+<section class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:10px"><div><strong>Comparação das potências</strong><div id="windowInfo" class="small">Janela disponível: 7h00</div></div><div class="small">Opções do teu carregador: 8 / 10 / 13 / 16 A</div></div><div class="tableWrap"><table><thead><tr><th>Corrente</th><th>Potência</th><th>Carga final</th><th>Tempo p/ objetivo</th><th>Resultado</th></tr></thead><tbody id="tbody"></tbody></table></div></section>
 <section class="card"><div class="note"><strong>Calibração real:</strong><br>
   • 10 A: 55% → 84% em 6h02<br>
   • 13 A: 40% → 75% em 6h24<br><br>
-  A app usa diretamente estes dois pontos. Para 6, 8 e 16 A, usa uma curva estimada até termos medições reais nessas correntes. <br><br><strong>Nota:</strong> a percentagem indicada pelo carro é arredondada e a temperatura, tensão e gestão da bateria podem introduzir pequenas diferenças.</div></section>
+  A app usa diretamente estes dois pontos. Para 8 e 16 A, usa uma curva estimada até termos medições reais nessas correntes. <br><br><strong>Nota:</strong> a percentagem indicada pelo carro é arredondada e a temperatura, tensão e gestão da bateria podem introduzir pequenas diferenças.</div></section>
 <div class="footer">Feito para o Renault Zoe ZE50 · funcionamento offline após a primeira abertura</div>
 </main>
 <script>
 (()=>{
-  const amps=[6,8,10,13,16];
+  const amps=[8,10,13,16];
   const real10={amp:10,start:55,end:84,hours:6+(2/60)};
   const real13={amp:13,start:40,end:75,hours:6+(24/60)};
   const rate10=(real10.end-real10.start)/real10.hours;
